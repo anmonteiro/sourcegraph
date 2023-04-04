@@ -29,13 +29,25 @@ nixpkgs.lib.genAttrs utils.lib.defaultSystems (system:
       comby = combyBuilder pkgs pkgs;
     } else
     {
-      comby-musl = (combyBuilder pkgs.pkgsStatic pkgs.pkgsStatic).overrideAttrs (oldAttrs: {
-        postFixup = ''
-          patchelf \
-            --set-interpreter /lib/ld-musl-x86_64.so.1 \
-            $out/bin/comby
-        '';
-      });
+      comby-musl =
+        let
+          inherit (pkgs) stdenv writeScriptBin pkg-config;
+          pkg-config-script =
+            let
+              pkg-config-pkg =
+                if stdenv.cc.targetPrefix == ""
+                then "${pkg-config}/bin/pkg-config"
+                else "${stdenv.cc.targetPrefix}pkg-config";
+            in
+            writeScriptBin "pkg-config" ''
+              #!${stdenv.shell}
+              ${pkg-config-pkg} $@
+            '';
+        in
+        pkgs.pkgsCross.musl64.comby.overrideAttrs (o: {
+          nativeBuildInputs = o.nativeBuildInputs ++ [ pkg-config-script ];
+        });
+
       comby-glibc = (combyBuilder pkgs pkgs.pkgsStatic).overrideAttrs (oldAttrs: {
         postFixup = ''
           patchelf \

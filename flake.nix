@@ -4,9 +4,10 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
     utils.url = "github:numtide/flake-utils";
+    ocaml.url = "github:nix-ocaml/nix-overlays";
   };
 
-  outputs = { self, nixpkgs, utils }:
+  outputs = { self, nixpkgs, utils, ocaml }:
     with nixpkgs.lib; with utils.lib; {
       devShells = eachDefaultSystem (system:
         let
@@ -23,7 +24,7 @@
       packages = fold recursiveUpdate { } [
         ((import ./dev/nix/ctags.nix { inherit nixpkgs utils; }).packages)
         (import ./dev/nix/p4-fusion.nix { inherit nixpkgs utils; })
-        (import ./dev/nix/comby.nix { inherit nixpkgs utils; })
+        (import ./dev/nix/comby.nix { inherit utils; nixpkgs = ocaml; })
       ];
     };
 }
