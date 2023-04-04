@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
     utils.url = "github:numtide/flake-utils";
-    ocaml.url = "github:nix-ocaml/nix-overlays";
+    ocaml.url = "github:nix-ocaml/nix-overlays?rev=6b007cfca815e3f94b692bdf4cd081424446c003";
   };
 
   outputs = { self, nixpkgs, utils, ocaml }:

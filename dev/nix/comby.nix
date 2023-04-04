@@ -30,22 +30,30 @@ nixpkgs.lib.genAttrs utils.lib.defaultSystems (system:
     } else
     {
       comby-musl =
-        let
-          inherit (pkgs) stdenv writeScriptBin pkg-config;
-          pkg-config-script =
-            let
-              pkg-config-pkg =
-                if stdenv.cc.targetPrefix == ""
-                then "${pkg-config}/bin/pkg-config"
-                else "${stdenv.cc.targetPrefix}pkg-config";
-            in
-            writeScriptBin "pkg-config" ''
-              #!${stdenv.shell}
-              ${pkg-config-pkg} $@
-            '';
-        in
-        pkgs.pkgsCross.musl64.comby.overrideAttrs (o: {
-          nativeBuildInputs = o.nativeBuildInputs ++ [ pkg-config-script ];
+        (pkgs.pkgsCross.musl64.comby.override {
+          sqlite = pkgs.sqlite-oc;
+          zlib = pkgs.zlib-oc;
+          gmp = pkgs.gmp-oc;
+          libev = pkgs.libev-oc;
+        }).overrideAttrs (o: {
+          buildInputs = o.buildInputs ++ [ pkgs.pkgsCross.musl64.ocamlPackages.camlzip ];
+          doCheck = false;
+          postPatch = ''
+            rm -rf lib/app/vendored/camlzip
+            substituteInPlace "lib/app/configuration/dune" "lib/app/pipeline/dune" \
+              --replace "comby.camlzip" "camlzip"
+            substituteInPlace "lib/app/configuration/command_input.ml" \
+              --replace "Camlzip.Zip." "Zip."
+
+            substituteInPlace \
+              "lib/app/configuration/command_configuration.ml" \
+              "lib/app/pipeline/fold.ml" --replace \
+                  "open Camlzip" "open Zip"
+
+            cat >> src/dune <<EOF
+            (env (release (flags  :standard -ccopt -static)))
+            EOF
+          '';
         });
 
       comby-glibc = (combyBuilder pkgs pkgs.pkgsStatic).overrideAttrs (oldAttrs: {
